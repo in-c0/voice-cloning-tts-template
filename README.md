@@ -34,15 +34,13 @@ pip install -r requirements.txt
 
 # 3. (Optional) Dia 1.6B support via Transformers main
 pip install git+https://github.com/huggingface/transformers.git
-pip install git+https://github.com/nari-labs/dia.git
-# dia install via huggingface might cause missing hf.py file issue. In that case, manually download by running:
-  # pip uninstall dia transformers -y
-  # git clone https://github.com/nari-labs/dia.git
-  # cd dia
-  # python -m venv .venv
-  # . .venv/bin/activate  # or .venv\Scripts\activate on Windows
-  # pip install -e .
 
+git clone https://github.com/nari-labs/dia.git
+cd dia
+pip install -e .
+```
+then move the folder dia to (.venv)\lib\site-packages.
+This makes dia a proper package, so import dia.hf works
 
 # 4. Run the API
 uvicorn app:app --host 0.0.0.0 --port 8000 --reload
