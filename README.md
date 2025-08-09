@@ -105,12 +105,4 @@ This image serves API on :8000 and the built UI on :5173.
 - **Dia 1.6B** code/weights: **Apache‑2.0** (check upstream README for any restrictions).
 - This template is MIT‑licensed. See `LICENSE`.
 
----
-
-## 6) Deploy ideas (for your 25‑weekly‑SaaS challenge)
-
-- **Hugging Face Space** (GPU): simplest for public demos; set the `VITE_API_URL` env.
-- **RunPod / Modal / Vast.ai**: cost‑efficient GPU; run Docker image above.
-- **Railway/Render**: OK for the UI; point to a GPU API elsewhere.
-
 Enjoy! 🚀
