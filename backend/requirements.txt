@@ -1,0 +1,9 @@
+fastapi>=0.111
+uvicorn[standard]>=0.30
+pydantic>=2.7
+python-multipart>=0.0.9
+pydub>=0.25.1
+numpy>=1.26
+coqui-tts>=0.22.0
+# Install torch/torchaudio manually for your CUDA/CPU (see README)
+# Optional: Dia + transformers main

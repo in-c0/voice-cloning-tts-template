@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0b0c10;
+  --card: #15171d;
+  --muted: #a5adba;
+  --accent: #7c3aed;
+}
+body { @apply bg-[color:var(--bg)] text-white; }
+.card { @apply bg-[color:var(--card)] rounded-2xl shadow-xl p-6; }
+.label { @apply text-sm text-[color:var(--muted)] mb-1; }
+.input { @apply w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]; }
+.btn { @apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-medium bg-[color:var(--accent)] hover:opacity-90 active:opacity-80 disabled:opacity-50; }
+.badge { @apply inline-flex items-center gap-2 text-xs rounded-full bg-white/10 px-3 py-1; }
