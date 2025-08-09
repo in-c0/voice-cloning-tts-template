@@ -89,9 +89,11 @@ class DiaEngine(BaseEngine):
     def __init__(self):
         try:
             from transformers import AutoProcessor
+            proc = AutoProcessor.from_pretrained("nari-labs/Dia-1.6B")
+            print(proc.__class__)
             from dia.hf import DiaForConditionalGeneration  # provided by the dia package
         except Exception as e:
-            raise RuntimeError("Dia not installed. Install transformers main + dia: \n\n"                               "pip install git+https://github.com/huggingface/transformers.git\n"                               "pip install git+https://github.com/nari-labs/dia.git\n\n"                               f"Original error: {e}")
+            raise RuntimeError("Error: {e}")
         import torch
         self.torch = torch
         self.AutoProcessor = AutoProcessor
