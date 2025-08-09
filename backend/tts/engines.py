@@ -139,34 +139,8 @@ class DiaEngine(BaseEngine):
             do_sample=True,
         )
 
-        mp3_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
-        self.processor.save_audio(outputs, mp3_path)
-
+        # Save directly to WAV (libsndfile-friendly)
         wav_path = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
-        AudioSegment.from_file(mp3_path).export(wav_path, format="wav")
-        os.remove(mp3_path)
+        self.processor.save_audio(outputs, wav_path)
         return wav_path
 
-
-    def synthesize_one(self, req: SynthesisRequest) -> str:
-        _set_seeds(req.seed)
-        # Dia expects [S1]/[S2] tags. For single-speaker narration, start with [S1].
-        text = req.text if req.text.strip().startswith("[S1]") else f"[S1] {req.text}"
-        inputs = self.processor(text=[text], padding=True, return_tensors="pt").to(self.device)
-        outputs = self.model.generate(
-            **inputs,
-            max_new_tokens=2048,
-            guidance_scale=3.0,
-            temperature=1.4,
-            top_p=0.9,
-            top_k=45,
-            do_sample=True,
-        )
-        # Save as MP3 then convert to WAV to match XTTS output for stitching
-        mp3_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3").name
-        self.processor.save_audio(outputs, mp3_path)
-        from pydub import AudioSegment
-        wav_path = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
-        AudioSegment.from_file(mp3_path).export(wav_path, format="wav")
-        os.remove(mp3_path)
-        return wav_path
