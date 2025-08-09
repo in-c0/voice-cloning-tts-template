@@ -2,9 +2,11 @@ from __future__ import annotations
 import os, tempfile, random
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
-
+from pathlib import Path
 import numpy as np
 from pydub import AudioSegment
+from scipy.io import wavfile
+import numpy as np
 
 def _set_seeds(seed: Optional[int]):
     if seed is None:
@@ -123,13 +125,17 @@ class DiaEngine(BaseEngine):
         self.AutoProcessor = AutoProcessor
         self.DiaForConditionalGeneration = DiaForConditionalGeneration
         self.torch = torch
-
+ 
+        
     def synthesize_one(self, req: SynthesisRequest) -> str:
         _set_seeds(req.seed)
         text = req.text if req.text.strip().startswith("[S1]") else f"[S1] {req.text}"
+
+        # Build inputs on the right device
         inputs = self.processor(text=[text], padding=True, return_tensors="pt").to(self.device)
 
-        outputs = self.model.generate(
+        # 1) Generate first
+        gen = self.model.generate(
             **inputs,
             max_new_tokens=2048,
             guidance_scale=3.0,
@@ -139,8 +145,39 @@ class DiaEngine(BaseEngine):
             do_sample=True,
         )
 
-        # Save directly to WAV (libsndfile-friendly)
+        # 2) Move result to CPU if supported (some objects aren't tensors)
+        try:
+            gen_cpu = gen.to("cpu")
+        except Exception:
+            gen_cpu = gen
+
+        # 3) Decode to waveform via processor (preferred)
+        decode = getattr(self.processor, "decode", None)
+        if decode is None:
+            raise RuntimeError("This transformers/dia version has no processor.decode; update both to latest.")
+
+        audio_list, sr = self.processor.decode(gen_cpu, return_sampling_rate=True)
+
+        # 4) Normalize to a single float32 1D array in [-1, 1]
+        if isinstance(audio_list, (list, tuple)):
+            audio = audio_list[0]
+        else:
+            audio = audio_list
+        # torch.Tensor -> numpy
+        if hasattr(audio, "detach"):
+            audio = audio.detach()
+        if hasattr(audio, "cpu"):
+            audio = audio.cpu()
+        if hasattr(audio, "numpy"):
+            audio = audio.numpy()
+        audio = np.asarray(audio, dtype=np.float32)
+        audio = np.clip(audio, -1.0, 1.0)
+
+        # 5) Write PCM16 WAV with SciPy (robust on Windows)
         wav_path = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
-        self.processor.save_audio(outputs, wav_path)
+        wavfile.write(wav_path, int(sr), (audio * 32767.0).astype(np.int16))
         return wav_path
+
+
+
 
