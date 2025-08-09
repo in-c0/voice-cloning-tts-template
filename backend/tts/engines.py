@@ -131,10 +131,8 @@ class DiaEngine(BaseEngine):
         _set_seeds(req.seed)
         text = req.text if req.text.strip().startswith("[S1]") else f"[S1] {req.text}"
 
-        # Build inputs on the right device
         inputs = self.processor(text=[text], padding=True, return_tensors="pt").to(self.device)
 
-        # 1) Generate first
         gen = self.model.generate(
             **inputs,
             max_new_tokens=2048,
@@ -145,38 +143,43 @@ class DiaEngine(BaseEngine):
             do_sample=True,
         )
 
-        # 2) Move result to CPU if supported (some objects aren't tensors)
+        # Move to CPU if possible (safe if not)
         try:
             gen_cpu = gen.to("cpu")
         except Exception:
             gen_cpu = gen
 
-        # 3) Decode to waveform via processor (preferred)
-        decode = getattr(self.processor, "decode", None)
-        if decode is None:
-            raise RuntimeError("This transformers/dia version has no processor.decode; update both to latest.")
+        # Decode: returns just audio (list/ndarray); SR is on the processor
+        audio_out = self.processor.decode(gen_cpu)
 
-        audio_list, sr = self.processor.decode(gen_cpu, return_sampling_rate=True)
+        # Get sampling rate from processor (fallbacks included)
+        sr = (
+            getattr(self.processor, "sampling_rate", None)
+            or getattr(getattr(self.processor, "feature_extractor", None), "sampling_rate", None)
+            or 24000  # sensible default if not provided
+        )
 
-        # 4) Normalize to a single float32 1D array in [-1, 1]
-        if isinstance(audio_list, (list, tuple)):
-            audio = audio_list[0]
+        # Normalize to a single 1D float32 array in [-1,1]
+        if isinstance(audio_out, (list, tuple)):
+            audio = audio_out[0]
         else:
-            audio = audio_list
-        # torch.Tensor -> numpy
+            audio = audio_out
+
         if hasattr(audio, "detach"):
             audio = audio.detach()
         if hasattr(audio, "cpu"):
             audio = audio.cpu()
         if hasattr(audio, "numpy"):
             audio = audio.numpy()
+
         audio = np.asarray(audio, dtype=np.float32)
         audio = np.clip(audio, -1.0, 1.0)
 
-        # 5) Write PCM16 WAV with SciPy (robust on Windows)
+        # Write PCM16 WAV
         wav_path = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
         wavfile.write(wav_path, int(sr), (audio * 32767.0).astype(np.int16))
         return wav_path
+
 
 
 
