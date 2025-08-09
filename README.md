@@ -40,7 +40,15 @@ cd dia
 pip install -e .
 ```
 then move the folder dia to (.venv)\lib\site-packages.
-This makes dia a proper package, so import dia.hf works
+This makes dia a proper package, so import dia.hf works.
+
+You'll need to make sure you have a matching CUDA build of PyTorch. If CUDA version is recent, PyTorch might not have published the exact version yet. 
+e.g. as of August 2025, if you have CUDA 12.6 installed, it should be backward-compatible with cu121 and cu124. You may need to run:
+```bash
+pip uninstall torch torchaudio -y
+pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+python -c "import torch; print(torch.version.cuda, torch.cuda.is_available())" # for verification
+```
 
 # 4. Run the API
 uvicorn app:app --host 0.0.0.0 --port 8000 --reload
